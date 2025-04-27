@@ -36,6 +36,14 @@ function __wx_channels_copy(text) {
   document.execCommand("copy");
   document.body.removeChild(textArea);
 }
+function __wx_channel_loading() {
+  if (window.__wx_channels_tip__ && window.__wx_channels_tip__.loading) {
+    return window.__wx_channels_tip__.loading("下载中");
+  }
+  return {
+    hide() {},
+  };
+}
 function __wx_log(msg) {
   fetch("/__wx_channels_api/tip", {
     method: "POST",
@@ -78,9 +86,6 @@ async function __wx_channels_decrypt(seed) {
     loaded = true;
   }
   await sleep();
-  __wx_log({
-    msg: `[]__wx_channels_decrypt - ${typeof Module.WxIsaac64}`,
-  });
   decryptor = new Module.WxIsaac64(seed);
   // 调用该方法时，会调用 wasm_isaac_generate 方法
   // 131072 是 decryptor_array 的长度
@@ -144,18 +149,13 @@ async function __wx_channels_download2(profile, filename) {
   await __wx_load_script(
     "https://res.wx.qq.com/t/wx_fed/cdn_libs/res/FileSaver.min.js"
   );
-  let ins = null;
-  if (window.__wx_channels_tip__) {
-    ins = window.__wx_channels_tip__.loading("下载中");
-  }
+  const ins = __wx_channel_loading();
   const response = await fetch(url);
   const blob = await show_progress_or_loaded_size(response);
   __wx_log({
     msg: "下载完成",
   });
-  if (ins) {
-    ins.hide();
-  }
+  ins.hide();
   saveAs(blob, filename + ".mp4");
 }
 /** 下载图片视频 */
@@ -191,10 +191,7 @@ async function __wx_channels_download4(profile, filename) {
   await __wx_load_script(
     "https://res.wx.qq.com/t/wx_fed/cdn_libs/res/FileSaver.min.js"
   );
-  let ins = null;
-  if (window.__wx_channels_tip__) {
-    ins = window.__wx_channels_tip__.loading("下载中");
-  }
+  const ins = __wx_channel_loading();
   const response = await fetch(url);
   const blob = await show_progress_or_loaded_size(response);
   __wx_log({
@@ -204,9 +201,7 @@ async function __wx_channels_download4(profile, filename) {
   if (profile.decryptor_array) {
     array = __wx_channels_video_decrypt(array, 0, profile);
   }
-  if (ins) {
-    ins.hide();
-  }
+  ins.hide();
   const result = new Blob([array], { type: "video/mp4" });
   saveAs(result, filename + ".mp4");
 }
@@ -274,19 +269,16 @@ ${_profile.key || ""}`,
     return;
   }
   _profile.data = __wx_channels_store__.buffers;
-  _profile.decryptor_array = __wx_channels_store__.keys[_profile.key];
-  if (!_profile.decryptor_array) {
-    try {
-      const r = await __wx_channels_decrypt(_profile.key);
-      // console.log("[]after __wx_channels_decrypt", r);
-      _profile.decryptor_array = r;
-    } catch (err) {
-      __wx_log({
-        msg: `解密失败，停止下载`,
-      });
-      alert("解密失败，停止下载");
-      return;
-    }
+  try {
+    const r = await __wx_channels_decrypt(_profile.key);
+    // console.log("[]after __wx_channels_decrypt", r);
+    _profile.decryptor_array = r;
+  } catch (err) {
+    __wx_log({
+      msg: `解密失败，停止下载`,
+    });
+    alert("解密失败，停止下载");
+    return;
   }
   __wx_channels_download4(_profile, filename);
 }
@@ -338,10 +330,7 @@ async function __wx_channels_handle_download_cover() {
   __wx_log({
     msg: `下载封面\n${_profile.coverUrl}`,
   });
-  let ins = null;
-  if (window.__wx_channels_tip__) {
-    ins = window.__wx_channels_tip__.loading("下载中");
-  }
+  const ins = __wx_channel_loading();
   try {
     const url = _profile.coverUrl.replace(/^http/, "https");
     const response = await fetch(url);
@@ -350,9 +339,7 @@ async function __wx_channels_handle_download_cover() {
   } catch (err) {
     alert(err.message);
   }
-  if (ins) {
-    ins.hide();
-  }
+  ins.hide();
 }
 var __wx_channels_tip__ = {};
 var __wx_channels_store__ = {
@@ -363,7 +350,7 @@ var __wx_channels_store__ = {
 };
 var $icon = document.createElement("div");
 $icon.innerHTML =
-  '<div data-v-6548f11a data-v-c2373d00 class="click-box op-item item-gap-combine" role="button" aria-label="下载" style="padding: 4px 4px 4px 4px; --border-radius: 4px; --left: 0; --top: 0; --right: 0; --bottom: 0;"><svg data-v-c2373d00 class="svg-icon icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="28" height="28"><path d="M213.333333 853.333333h597.333334v-85.333333H213.333333m597.333334-384h-170.666667V128H384v256H213.333333l298.666667 298.666667 298.666667-298.666667z"></path></svg></div>';
+  '<div data-v-6548f11a data-v-132dee25 class="click-box op-item item-gap-combine" role="button" aria-label="下载" style="padding: 4px 4px 4px 4px; --border-radius: 4px; --left: 0; --top: 0; --right: 0; --bottom: 0;"><svg data-v-132dee25 class="svg-icon icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="28" height="28"><path d="M213.333333 853.333333h597.333334v-85.333333H213.333333m597.333334-384h-170.666667V128H384v256H213.333333l298.666667 298.666667 298.666667-298.666667z"></path></svg></div>';
 var __wx_channels_video_download_btn__ = $icon.firstChild;
 __wx_channels_video_download_btn__.onclick = () => {
   if (!window.__wx_channels_store__.profile) {
